@@ -21,11 +21,11 @@ class TrailOrLive
     public function handle(Request $request, Closure $next)
     {
         $subcription = DB::table('subscriptions')
-             ->where('user_id', '=', Auth::User()->id)
+             ->where('user_id', '=', getPrimaryUserId(Auth::user()->id))
              ->first();
 
         if($subcription->type == 'free'){
-            $smtps = Smtp::where('user_id', Auth::User()->id)->get();
+            $smtps = Smtp::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
             if($smtps->count() >= 2){
                 session()->flash('message', 'Free Account Limit Reached.');
                 session()->flash('classes', 'alert-danger');

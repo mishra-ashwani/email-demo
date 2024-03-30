@@ -58,7 +58,7 @@
                                           <select name="email_template" class="email_template form-control" id="email_template_list">
                                             <option value="">Blank</option>
                                             @foreach ($email_templates as $email_template)
-                                              <option value="{{$email_template->id}}">{{$email_template->template_title}}</option>
+                                              <option value="{{$email_template->id}}"  {{ old('email_template') == $email_template->id ? "selected" : "" }}>{{$email_template->template_title}}</option>
                                             @endforeach
                                           </select>
                                           @error('email_template')
@@ -71,23 +71,35 @@
 
                                       <div class="col-sm-6">
                                         <div class="form-group">
-                                          <label for="email_subject">Choose SMTP</label>
-                                          @foreach ($smtps as $smtp)
+                                            <label for="email_subject">Choose SMTP Group</label>
+                                            <select name="smtp_group_id" id="smtp_group_id" class="form-control @error('smtp_group_id') is-invalid @enderror">
+                                                <option value="">Select Group</option>
+                                                @foreach ($smtpGroups as $smtpGroup)
+                                                    <option value="{{$smtpGroup->id}}" {{ old('smtp_group_id') == $smtpGroup->id ? "selected" : "" }}>{{$smtpGroup->group_name}}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('smtp_group_id')
+                                                <div class="alert alert-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
 
-                                              <div class="input-group mb-3">
-                                                <div class="input-group-prepend">
-                                                  <div class="input-group-text">
-                                                    <input type="checkbox" aria-label="Checkbox for following text input" name="smtps[]" value="{{$smtp->id}}"  {{ (is_array(old('smtps')) and in_array($smtp->id, old('smtps'))) ? ' checked' : '' }}>
-                                                  </div>
-                                                </div>
-                                                <label for="email_subject">{{$smtp->account_name}}</label>
-                                              </div>
+                                        <div class="form-group">
+                                            <label for="email_subject">Choose SMTP</label>
+                                            @foreach ($smtps as $smtp)
+                                                <label for="smtp_{{$smtp->id}}">
+                                                    <input
+                                                    type="checkbox"
+                                                    name="smtp_ids[]"
+                                                    value="{{$smtp->id}}"
+                                                    id="smtp_{{$smtp->id}}"
+                                                    @if(is_array(old('smtp_ids')) && in_array($smtp->id,old('smtp_ids'))) checked @endif
+                                                    class="cb_smtp"  />{{$smtp->account_name}}
+                                                </label>
+                                            @endforeach
 
-                                              @endforeach
-
-                                              @error('smtps')
-                                                  <div class="alert alert-danger">{{ $message }}</div>
-                                              @enderror
+                                            @error('smtp_ids')
+                                                <div class="alert alert-danger">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                       </div>
 
@@ -103,9 +115,13 @@
 
                                     </div>
 
-
-                                    <button type="submit" class="btn btn-success" id="btnSendEmail" name="btnSendEmail">Send</button>
-                                  </form>
+                                    @if (is_null(Auth::user()->parent_id) || Auth::user()->validatePermission('email-permission'))
+                                        <button type="submit" class="btn btn-success" id="btnSendEmail" name="btnSendEmail">Send Now</button>
+                                    @endif
+                                    @if (is_null(Auth::user()->parent_id) || Auth::user()->validatePermission('email-permission'))
+                                        <button type="button" class="btn btn-primary" id="btnScheduleEmail" name="btnScheduleEmail">Send Later</button>
+                                    @endif
+                                </form>
                                 </div>
                                 <div class="alert smtp-test-response" style="display: none;">
                                 </div>
@@ -120,19 +136,36 @@
                     </div>
                 </div>
             </div>
-        </main>
-        <footer class="py-4 bg-light mt-auto">
-            <div class="container-fluid px-4">
-                <div class="d-flex align-items-center justify-content-between small">
-                    <div class="text-muted">Copyright &copy; Your Website 2022</div>
-                    <div>
-                        <a href="#">Privacy Policy</a>
-                        &middot;
-                        <a href="#">Terms &amp; Conditions</a>
+            <div class="modal fade" id="scheduleEmailPopup" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Schedule Email</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="container">
+                                <div class='col-sm-12'>
+                                    <form class='form-horizontal' id="frmScheduleEmail">
+                                        <input type='hidden' name='recipient_list' value=''>
+                                        <input type='hidden' name='email_subject' value=''>
+                                        <input type='hidden' name='template_body' value=''>
+                                        <input type='hidden' name='smtp_group_id' value=''>
+                                        <input type='hidden' name='smtp_ids' value=''>
+                                        <div class="form-group">
+                                            <label for="dtEmail">Select Date Time</label>
+                                            <input type='text' class="form-control" name="schedule_date_time" id='dtEmail' />
+                                        </div>
+                                        <button type="button" class="btn btn-success" id="btnScheduleNow" name="btnScheduleNow">Schedule Now</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
-        </footer>
+        </main>
+        @include('user.footer')
     </div>
 </div>
 <style>
@@ -208,6 +241,98 @@
         }
 
     })
+
+    $('#smtp_group_id').on('change', function(){
+        let metadata =$(this).find(':selected').val();
+        if(metadata != ''){
+            $('input[name="smtp_ids[]"]').each(function() {
+                this.checked = false;
+            });
+        }
+    })
+
+    $('.cb_smtp').on('change', function(){
+        if ($(this).prop('checked')==true){
+            $('#smtp_group_id').prop('selectedIndex',0);
+        }
+    })
+
+    $('#btnScheduleEmail').on('click', function(){
+        let recipient_list=$('#recipient_list').val();
+        let email_subject=$('#email_subject').val();
+        let template_body = tinymce.get("template_body").getContent();
+        let smtp_group_id=$('#smtp_group_id').val();
+
+        if(!recipient_list){
+            alert('Please select recipients');
+            $('#recipient_list').focus();
+            return false;
+        }
+        if(!email_subject.length){
+            alert('Please enter email subject');
+            $('#email_subject').focus();
+            return false;
+        }
+        if(!template_body.length){
+            alert('Please enter email content');
+            tinyMCE.get('template_body').focus()
+            return false;
+        }
+        let ids=[];
+        $("input.cb_smtp:checked").each(function(){
+            ids.push($(this).val());
+        });
+
+        if(!smtp_group_id && ids.length == 0 ){
+            alert('Please select smtp');
+            $('#smtp_group_id').focus();
+            return false;
+        }
+
+        $("#frmScheduleEmail input[name='recipient_list']").val(recipient_list);
+        $("#frmScheduleEmail input[name='email_subject']").val(email_subject);
+        $("#frmScheduleEmail input[name='template_body']").val(template_body);
+        $("#frmScheduleEmail input[name='smtp_group_id']").val(smtp_group_id);
+        $("#frmScheduleEmail input[name='smtp_ids']").val(ids.join(','));
+
+        $('#scheduleEmailPopup').modal('show');
+    });
+    $('#dtEmail').datetimepicker({
+        minDate: new Date(),
+        step: 30,
+        minTime: new Date().getMinutes()
+    });
+
+    $('#btnScheduleNow').on('click', function() {
+        let dt = $('#dtEmail').val();
+        let fd = new FormData($('#frmScheduleEmail')[0]);
+
+        jQuery.ajax({
+            url: '/service/email/schedule-email',
+            type: 'post',
+            dataType:'json',
+            data: fd,
+            cache: false,
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                if(data.success){
+                    $('#scheduleEmailPopup').modal('hide')
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'Back'
+                    }).then((result) => {
+                        if (result['isConfirmed']){
+                            window.location.reload();
+                        }
+                    })
+                }
+            }
+        });
+
+    });
   });
 
 

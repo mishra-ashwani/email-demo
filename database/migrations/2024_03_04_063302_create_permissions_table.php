@@ -13,8 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('recipients', function (Blueprint $table) {
-            $table->string('file_name')->after('recipient_file_path');
+        Schema::create('permissions', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug');
+            $table->timestamps();
         });
     }
 
@@ -25,8 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('recipients', function (Blueprint $table) {
-            $table->dropColumn('file_name');
-        });
+        Schema::dropIfExists('permissions');
     }
 };

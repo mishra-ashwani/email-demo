@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\Permission;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -54,6 +56,15 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+        $userPermissions=[];
+        $allPermissionIds = Auth::user()->permissions()->pluck('id')->toArray();
+        $allPermissions  = Permission::select('slug')->whereIn('id',$allPermissionIds)->get();
+        if($allPermissions){
+            foreach($allPermissions as $permission){
+                array_push($userPermissions,$permission->slug);
+            }
+        }
+        Session::put('user_permissions',$userPermissions);
     }
 
     /**

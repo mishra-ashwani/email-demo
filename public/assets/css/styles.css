@@ -11728,7 +11728,7 @@ button.btnDeleteRecipientsList{
     border-radius: 5px;
     margin: 20px 0;
     box-shadow: 0 0 6px #ddd;
- 
+
 }
 
 .recipients-list-box {
@@ -11736,7 +11736,7 @@ button.btnDeleteRecipientsList{
     border-radius: 5px;
     margin: 20px 0;
     box-shadow: 0 0 6px #ddd;
-  
+
 }
 
 .recipients-list-box h3 {
@@ -11757,7 +11757,7 @@ button.btnSendEmail {
   right: 35px;
   top: 30px;
 }
-button.btnTestAllSmtp{
+button.btnTestAllSmtp,button.btnAddNewSubUser{
   background: #068148;
   width: 250px;
   height: 50px;

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreign('customer_id')->references('id')->on('users');
             $table->string('payment_id')->nullable();
             $table->integer('product_id')->default(0);
-            $table->integer('licence_count')->default(0);
+            $table->integer('licence_count')->default(1);
             $table->string('licence_key')->nullable();
             $table->dateTime('subscription_start_date')->nullable();
             $table->dateTime('subscription_end_date')->nullable();

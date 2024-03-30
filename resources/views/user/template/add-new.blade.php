@@ -2,7 +2,7 @@
 
 @section('content')
 <div id="layoutSidenav">
-    
+
     @include('user.sidebar')
     <div id="layoutSidenav_content">
         <main>
@@ -11,8 +11,8 @@
                 <ol class="breadcrumb mb-4">
                     <li class="breadcrumb-item active">Create</li>
                 </ol>
-                
-                
+
+
                 <div class="card mb-4">
                     <div class="card-body">
                         <div class="container">
@@ -26,16 +26,16 @@
                                       <div class="col-sm-12">
                                         <div class="form-group">
                                           <label for="template_title">Template Title</label>
-                                          <input 
-                                              type="text" 
-                                              class="form-control @error('template_title') is-invalid @enderror" 
-                                              id="template_title" 
-                                              name="template_title" 
-                                              aria-describedby="template_title" 
+                                          <input
+                                              type="text"
+                                              class="form-control @error('template_title') is-invalid @enderror"
+                                              id="template_title"
+                                              name="template_title"
+                                              aria-describedby="template_title"
                                               placeholder="Enter Template Title"
                                               value="{{ old('template_title')}}"
                                           >
-                                          
+
                                           @error('template_title')
                                               <div class="alert alert-danger">{{ $message }}</div>
                                           @enderror
@@ -47,15 +47,11 @@
                                             <div class="alert alert-danger">{{ $message }}</div>
                                           @enderror
                                         </div>
-                                       
                                       </div>
-                                      
-                                   
-                                    
-                                     
                                     </div>
-                                    
+                                    @if (is_null(Auth::user()->parent_id) || Auth::user()->validatePermission('templates-permission'))
                                     <button type="submit" class="btn btn-success" id="btnSaveTemplate">Save Template</button>
+                                    @endif
                                   </form>
                                 </div>
                                 <div class="alert smtp-test-response" style="display: none;">
@@ -64,7 +60,7 @@
                                     <div class="alert {{session()->get('classes')}}">
                                         {{ session()->get('message') }}
                                     </div>
-                                    
+
                                 @endif
                               </div>
                             </div>
@@ -73,18 +69,7 @@
                 </div>
             </div>
         </main>
-        <footer class="py-4 bg-light mt-auto">
-            <div class="container-fluid px-4">
-                <div class="d-flex align-items-center justify-content-between small">
-                    <div class="text-muted">Copyright &copy; Your Website 2022</div>
-                    <div>
-                        <a href="#">Privacy Policy</a>
-                        &middot;
-                        <a href="#">Terms &amp; Conditions</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        @include('user.footer')
     </div>
 </div>
 {{-- <script src="tinymce/tinymce.min.js"></script> --}}
@@ -102,17 +87,17 @@ tinymce.init({
     remove_script_host : false,
     document_base_url : config.APP_URL,
     setup: function(ed) {
-         
+
         var fileInput = $('<input id="tinymce-uploader" type="file" name="pic" accept="image/*" style="display:none">');
         $(ed.getElement()).parent().append(fileInput);
-         
-        fileInput.on("change",function(){           
+
+        fileInput.on("change",function(){
             var file = this.files[0];
-            var reader = new FileReader();          
+            var reader = new FileReader();
             var formData = new FormData();
             var files = file;
             formData.append("file",files);
-            formData.append('filetype', 'image');               
+            formData.append('filetype', 'image');
             jQuery.ajax({
                 url: "/service/template/upload-image",
                 type: "post",
@@ -126,10 +111,10 @@ tinymce.init({
                         ed.insertContent('<img src="'+fileName+'"/>');
                     }
                 }
-            });     
-            reader.readAsDataURL(file);  
-        });     
-         
+            });
+            reader.readAsDataURL(file);
+        });
+
         ed.ui.registry.addButton('image_upload', {
             tooltip: 'Upload Image',
             icon: 'image',

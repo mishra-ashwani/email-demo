@@ -6,6 +6,8 @@ use App\Http\Controllers\Service\RecipientController;
 use App\Http\Controllers\Service\EmailTemplateController;
 use App\Http\Controllers\Service\MailController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +27,13 @@ require __DIR__.'/auth.php';
 
 
 Route::group(['namespace' => 'Service','prefix' => 'service','middleware' => 'auth'], function() {
+
+    Route::get('/smtp-group/create-smtp-group', [SMTPController::Class,'create_group'])->name('create-smtp-group');
+    Route::post('/smtp-group/create-smtp-group', [SMTPController::Class,'save_group'])->name('save-smtp-group');
+    Route::get('/smtp-group/list-smtp-group', [SMTPController::Class,'list_all_groups'])->name('list-smtp-group');
+    Route::get('/smtp-group/{id}/edit', [SMTPController::Class,'edit_group'])->name('edit-smtp-group');
+    Route::put('/smtp-group/update/{id}', [SMTPController::Class,'update_group'])->name('update-smtp-group');
+    Route::delete('/smtp-group/delete/{id}', [SMTPController::Class,'delete_group'])->name('delete-smtp-group');
 
     Route::get('/smtp/add-smtp', [SMTPController::Class,'create'])->name('add-new-smtp');
     Route::post('/save-smtp', [SMTPController::Class,'store'])->name('save-smtp');
@@ -53,4 +62,15 @@ Route::group(['namespace' => 'Service','prefix' => 'service','middleware' => 'au
     Route::get('/email/list-all-email', [MailController::Class,'list_all_email'])->name('list-all-emails');
     Route::post('/email/send-email', [MailController::Class,'send_email'])->name('send-email');
     Route::post('/email/prepare-email', [MailController::Class,'prepare_to_send_email'])->name('prepare-email');
+    Route::post('/email/schedule-email', [MailController::Class,'schedule_email'])->name('schedule-email');
+    Route::get('/email/email-schedule-list', [MailController::Class,'email_schedule_list'])->name('email-schedule-list');
+    Route::get('/email/download-failed-emails/{batch_number?}', [MailController::Class,'download_failed_emails'])->name('download-failed-emails');
+});
+
+Route::group(['prefix'=>'sub-users','middleware'=>['auth','isPrimaryUser']],function(){
+    Route::get('/', [UserController::Class,'index'])->name('sub-users-list');
+    Route::get('/{id}', [UserController::Class,'show'])->name('get-sub-user');
+    Route::post('/create', [UserController::Class,'create'])->name('create_sub_user');
+    Route::delete('/{user}/delete', [UserController::Class,'destroy'])->name('delete_sub_user');
+    Route::post('/update', [UserController::Class,'update'])->name('update_sub_user');
 });

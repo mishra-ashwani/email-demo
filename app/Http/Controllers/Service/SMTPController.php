@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Service;
 
 use App\Http\Controllers\Controller;
 use App\Models\Smtp;
+use App\Models\SmtpGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP as PHPMailerSMTP;
 
 class SMTPController extends Controller
 {
@@ -18,7 +20,7 @@ class SMTPController extends Controller
      */
     public function index()
     {
-        $smtps = Smtp::where('user_id', Auth::User()->id)->get();
+        $smtps = Smtp::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
         return view('user.smtp.list-all',compact('smtps'));
     }
 
@@ -29,7 +31,8 @@ class SMTPController extends Controller
      */
     public function create()
     {
-        return view('user.smtp.add-new');
+        $smtpGroups=SmtpGroup::where('user_id',getPrimaryUserId(Auth::user()->id))->get();
+        return view('user.smtp.add-new',['smtpGroups'=>$smtpGroups]);
     }
 
     /**
@@ -40,10 +43,19 @@ class SMTPController extends Controller
      */
     public function store(Request $request)
     {
+        $user_id=getPrimaryUserId(Auth::user()->id);
+        $user_plan=getUserPlan($user_id);
+        $smtps=Smtp::where('user_id',$user_id)->get();
+
+        if($user_plan == 'Free' && $smtps->count() == 5){
+            session()->flash('classes', 'alert-error');
+            return redirect()->route('add-new-smtp')->with('message', 'Trail Account. SMTP Limit Reached.');
+        }
+
         $validated = $request->validate([
             'account_name' => 'required|max:64',
             'from_name' => 'required|max:64',
-            'from_email' => 'required|email|unique:smtps',
+            'from_email' => 'required|email',
             'reply_email' => 'required|email',
             'server' => 'required',
             'port' => 'required|min:2|max:4',
@@ -61,7 +73,7 @@ class SMTPController extends Controller
         $smtp->port=$request->input('port');
         $smtp->user_email=$request->input('user_email');
         $smtp->user_password=$request->input('user_password');
-        $smtp->user_id=Auth::user()->id;
+        $smtp->user_id=getPrimaryUserId(Auth::user()->id);
         $smtp->status='1';
 
         $smtp->save();
@@ -123,7 +135,7 @@ class SMTPController extends Controller
             'user_password' => $request->input('user_password'),
         ];
 
-        Smtp::where('id', $id)->where('user_id', Auth::user()->id)->update($arr); 
+        Smtp::where('id', $id)->where('user_id', getPrimaryUserId(Auth::user()->id))->update($arr);
         return redirect()->route('edit-smtp',['id'=>$id])->with('message', 'SMTP Updated Successfully!');
     }
 
@@ -133,9 +145,12 @@ class SMTPController extends Controller
      * @param  \App\Models\Smtp  $smtp
      * @return \Illuminate\Http\Response
      */
-    public function destroy(int $id)
-    {
+    public function destroy(int $id){
         Smtp::destroy($id);
+    }
+    public function delete_group(int $id){
+        SmtpGroup::destroy($id);
+        return response()->json(['status' => 'success']);
     }
 
     public function test_smtp(Request $request){
@@ -167,7 +182,7 @@ class SMTPController extends Controller
 
             $mail->setFrom($request->input('user_email'), $request->input('from_name'));
             $mail->addAddress($request->input('user_email'));
-            
+
 
             if($mail->send()){
                 return response()->json([
@@ -187,7 +202,7 @@ class SMTPController extends Controller
             ]);
         }
 
-        
+
     }
 
     public function test_smtp_by_id(Request $request){
@@ -240,6 +255,35 @@ class SMTPController extends Controller
                 'message' => $mail->ErrorInfo,
                 'result' => 'fail',
             ]);
-        } 
+        }
+    }
+
+    public function create_group(){
+        $smtpGroups = \DB::table("smtp_groups")
+            ->select("smtp_groups.id","smtp_groups.group_name",\DB::raw("GROUP_CONCAT(smtps.account_name) as account_name"))
+            ->leftjoin("smtps",\DB::raw("FIND_IN_SET(smtps.id,smtp_groups.smtp_ids)"),">",\DB::raw("'0'"))
+            ->where('smtp_groups.user_id',getPrimaryUserId(Auth::user()->id))
+            ->groupBy("smtp_groups.id")
+            ->get();
+        $smtps=Smtp::where('user_id',getPrimaryUserId(Auth::user()->id))->get();
+        return view('user.smtp.add-new-group',['smtpGroups'=>$smtpGroups,'smtps'=>$smtps]);
+    }
+    public function save_group(Request $request){
+
+        $request->validate([
+            'group_name' => 'required|max:128',
+            'smtp_id' => 'required',
+        ]);
+
+        $smtpGroup=new SmtpGroup();
+
+        $smtpGroup->group_name=$request->input('group_name');
+        $smtpGroup->user_id=getPrimaryUserId(Auth::user()->id);
+        $smtp_ids=implode(',',$request->input('smtp_id'));
+        $smtpGroup->smtp_ids=$smtp_ids;
+
+        $smtpGroup->save();
+        session()->flash('classes', 'alert-success');
+        return redirect()->route('create-smtp-group')->with('message', 'SMTP Group Saved Successfully!');
     }
 }

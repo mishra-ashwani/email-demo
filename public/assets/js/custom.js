@@ -1,5 +1,7 @@
 $(document).ready(function(){
 
+    $('div.alert-success').delay(2000).fadeOut('slow');
+
     $.ajaxSetup({
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -57,6 +59,22 @@ $(document).ready(function(){
             }
         });
     });
+    $(document).on('click','.btnDeleteSmtpGroup',function(e){
+        e.preventDefault();
+        var id=$(this).data('id');
+        jQuery.ajax({
+            url: '/service/smtp-group/delete/'+id,
+            type: 'delete',
+            dataType:'json',
+            data: {
+                id: id,
+            },
+            success: function(response){
+                window.location.reload();
+            }
+        });
+        return true;
+    });
     $(document).on('click','.btnDeleteRecipientsList',function(e){
         var id=$(this).data('id');
 
@@ -101,33 +119,37 @@ $(document).ready(function(){
         let smtp_counter=0;
 
         for(let i=1;i<=$('.count').val();i++){
-            var fd = new FormData();
-            fd.append('email_subject',$('.email_subject').val());
-            fd.append('smtp',smtps[smtp_counter]);
-            fd.append('counter',i);
-            fd.append('recipient',$('.recipient_'+i).html());
-            fd.append('template_body',$('.template_body_'+i).val());
 
-            jQuery.ajax({
-                url: '/service/email/send-email',
-                type: 'post',
-                dataType:'json',
-                data: fd,
-                cache: false,
-                processData: false,
-                contentType: false,
-                success: function(data) {
-                    $('.row_'+i).addClass(data.status);
-                    $('.sender_'+i).html(data.from_email);
-                    $('.status_'+i).html(data.status);
-                    $('.comment_'+i).html(data.comment);
+            setTimeout(function(){
+                var fd = new FormData();
+                fd.append('email_subject',$('.email_subject').val());
+                fd.append('batch_number',$('.batch_number').val());
+                fd.append('smtp',smtps[smtp_counter]);
+                fd.append('counter',i);
+                fd.append('recipient',$('.recipient_'+i).html());
+                fd.append('template_body',$('.template_body_'+i).val());
+
+                jQuery.ajax({
+                    url: '/service/email/send-email',
+                    type: 'post',
+                    dataType:'json',
+                    data: fd,
+                    cache: false,
+                    processData: false,
+                    contentType: false,
+                    success: function(data) {
+                        $('.row_'+i).addClass(data.status);
+                        $('.sender_'+i).html(data.from_email);
+                        $('.status_'+i).html(data.status);
+                        $('.comment_'+i).html(data.comment);
+                    }
+                });
+
+                smtp_counter++;
+                if(smtp_counter == total_smtp){
+                    smtp_counter=0;
                 }
-            });
-
-            smtp_counter++;
-            if(smtp_counter == total_smtp){
-                smtp_counter=0;
-            }
+            },1000);
         }
 
     })

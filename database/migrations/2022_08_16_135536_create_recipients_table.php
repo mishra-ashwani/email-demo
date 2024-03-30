@@ -19,6 +19,8 @@ return new class extends Migration
             $table->foreignIdFor(User::class);
             $table->string('recipient_list_name');
             $table->string('recipient_file_path');
+            $table->string('file_name');
+            $table->string('recipient_meta');
             $table->timestamps();
         });
     }

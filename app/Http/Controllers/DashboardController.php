@@ -13,10 +13,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $smtp_count = Sm::where('user_id', '=', Auth::user()->id)->get()->count();
-        $recipients_count = Recipient::where('user_id', Auth::User()->id)->get()->count();
+        $smtp_count = Sm::where('user_id', '=', getPrimaryUserId(Auth::user()->id))->get()->count();
+        $recipients_count = Recipient::where('user_id', getPrimaryUserId(Auth::user()->id))->get()->count();
 
-        $email_sent = DB::table('email_logs')->where('user_id', Auth::User()->id)->get()->count();
+        $email_sent = DB::table('email_logs')->where('user_id', getPrimaryUserId(Auth::user()->id))->get()->count();
 
         return view('user.dashboard', compact('smtp_count', 'recipients_count', 'email_sent'));
     }

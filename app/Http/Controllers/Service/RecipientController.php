@@ -18,7 +18,7 @@ class RecipientController extends Controller
      */
     public function index()
     {
-        $recipients = Recipient::where('user_id', Auth::User()->id)->get();
+        $recipients = Recipient::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
         return view('user.recipient.list-all',compact('recipients'));
     }
 
@@ -42,11 +42,11 @@ class RecipientController extends Controller
 
         $recipient=new Recipient();
 
-        $user_id=Auth::user()->id;
+        $user_id=getPrimaryUserId(Auth::user()->id);
 
         if($request->file()) {
-            $fileName = $user_id.'_'.time().'_'.$request->recipient_list->getClientOriginalName();
-
+            $fileName=cleanFileName($request->recipient_list->getClientOriginalName());
+            $fileName = $user_id.'_'.time().'_'.$fileName;
             $filePath = $request->file('recipient_list')->move(public_path('uploads'), $fileName);
 
             $recipient->user_id=$user_id;
@@ -54,10 +54,13 @@ class RecipientController extends Controller
             $recipient->recipient_file_path = URL::asset('uploads/'.$fileName);
             $recipient->file_name = $fileName;
 
-
             $csv = array_map("str_getcsv", file($filePath,FILE_SKIP_EMPTY_LINES));
             $keys = array_shift($csv);
-            $recipentMeta=json_encode($keys,true);
+            $columns=[];
+            foreach ($keys as $key){
+                $columns[]=cleanString($key);
+            }
+            $recipentMeta=json_encode($columns,true);
             $recipient->recipient_meta=$recipentMeta;
 
             $recipient->save();
@@ -126,7 +129,7 @@ class RecipientController extends Controller
      */
     public function destroy(int $id)
     {
-        $recipient = Recipient::where('id', $id)->where('user_id',Auth::user()->id)->first();
+        $recipient = Recipient::where('id', $id)->where('user_id',getPrimaryUserId(Auth::user()->id))->first();
         $file_name=$recipient->file_name;
         if(File::exists(public_path('uploads/'.$file_name))){
             File::delete(public_path('uploads/'.$file_name));

@@ -8,6 +8,8 @@ use Mail;
 use URL;
 use App;
 use App\Mail\TestMail;
+use App\Models\EmailLog;
+use App\Models\EmailSchedule;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Input;
@@ -23,6 +25,9 @@ use Carbon\Carbon;
 use App\Models\Recipient;
 use App\Models\EmailTemplate;
 use App\Models\Smtp as Sm;
+use App\Models\SmtpGroup;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Response;
 
 class MailController extends Controller
 {
@@ -141,33 +146,46 @@ class MailController extends Controller
    }
 
    public function create_email(){
-      $recipients = Recipient::where('user_id', Auth::User()->id)->get();
-      $smtps = Sm::where('user_id', Auth::User()->id)->get();
-      $email_templates = EmailTemplate::where('user_id', Auth::User()->id)->get();
-      return view('user.email.create',compact('recipients','smtps','email_templates'));
+      $recipients = Recipient::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
+      $smtpGroups = SmtpGroup::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
+      $smtps = Sm::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
+      $email_templates = EmailTemplate::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
+      return view('user.email.create',compact('recipients','smtpGroups','email_templates','smtps'));
    }
    public function prepare_to_send_email(Request $request){
 
         $validated = $request->validate([
+            'smtp_group_id' => 'required_without:smtp_ids',
             'recipient_list' => 'required',
             'email_subject' => 'required',
             'template_body' => 'required',
-            'smtps' => 'required|min:1',
+            'smtp_ids' => 'required_without:smtp_group_id',
         ]);
 
-        $smtp_ids=$request->input('smtps');
+        $smtp_group_id=$request->input('smtp_group_id') ?? NULL;
         $recipient_list=$request->input('recipient_list');
         $email_subject=$request->input('email_subject');
         $template_body=$request->input('template_body');
+        $smtp_ids=$request->input('smtp_ids') ?? NULL;
 
-        $smtps = Sm::whereIn('id', $smtp_ids)->get()->toArray();
-        $recipients = Recipient::where('user_id', Auth::User()->id)->where('id',$recipient_list)->first();
+        if($smtp_group_id){
+            $smtps = SmtpGroup::where('id', $smtp_group_id)->first()->toArray();
+            $smtp_ids=explode(',',$smtps['smtp_ids']);
+            $smtps = Sm::whereIn('id', $smtp_ids)->get()->toArray();
+        }else{
+            $smtps = Sm::whereIn('id', $smtp_ids)->get()->toArray();
+        }
+        $recipients = Recipient::where('user_id', getPrimaryUserId(Auth::user()->id))->where('id',$recipient_list)->first();
 
         $inputFileName = public_path('uploads/'.$recipients['file_name']);
 
         $csv = array_map("str_getcsv", file($inputFileName,FILE_SKIP_EMPTY_LINES));
         $keys = array_shift($csv);
-        $recipentMeta=json_encode($keys,true);
+        $columns=[];
+        foreach ($keys as $key){
+            $columns[]=cleanString($key);
+        }
+        $recipentMeta=json_encode($columns,true);
 
         $headerRecord='';
         if( ($handle = fopen( $inputFileName, "r")) !== FALSE) {
@@ -175,20 +193,19 @@ class MailController extends Controller
             while (($rowData = fgetcsv($handle, 0, ",")) !== FALSE) {
                 if( 0 === $rowCounter) {
                     $headerRecord = $rowData;
+
                 } else {
                     foreach( $rowData as $key => $value) {
-                        $assocData[ $rowCounter - 1][ $headerRecord[ $key] ] = $value;
+                        $assocData[ $rowCounter - 1][ $columns[$key]] = $value;
                     }
                 }
                 $rowCounter++;
             }
             fclose($handle);
         }
+        $batchNumber=time();
 
-
-
-
-      return view('user.email.prepare',compact('smtps','recipentMeta','email_subject','template_body','assocData'));
+      return view('user.email.prepare',compact('smtps','recipentMeta','email_subject','template_body','assocData','batchNumber'));
 
    }
    public function send_email(Request $request){
@@ -204,10 +221,7 @@ class MailController extends Controller
       $recipient_email=$request->input('recipient');
       $email_subject=$request->input('email_subject');
       $template_body=$request->input('template_body');
-
-
-
-
+      $batch_number=$request->input('batch_number');
 
       $smtp = Sm::where('id', $smtp_id)->first()->toArray();
 
@@ -226,6 +240,7 @@ class MailController extends Controller
          $mail->Password   = $smtp['user_password'];
          $mail->SMTPSecure = 'tls';
          $mail->Port       = 587;
+         $mail->Timeout     =   35;
 
          $mail->SMTPOptions = array(
             'ssl' => array(
@@ -255,13 +270,13 @@ class MailController extends Controller
       }
 
       $email_log=[
-         'user_id'=>Auth::user()->id,
+         'user_id'=>getPrimaryUserId(Auth::user()->id),
          'recipent_email'=>$recipient_email,
          'email_body'=>$template_body ?? '',
          'status'=>$status,
          'comments'=>$comments,
          'from_email'=>$from_email,
-         'batch_number'=>'0',
+         'batch_number'=>$batch_number,
          'created_at'=>Carbon::now()
       ];
 
@@ -269,7 +284,7 @@ class MailController extends Controller
 
       $mail->getSMTPInstance()->reset();
       $mail->clearAddresses();
-      sleep(1);
+      sleep(15);
 
       return response()->json([
          'counter' => $counter,
@@ -290,5 +305,74 @@ class MailController extends Controller
         return view('user.email.email_log',compact('email_logs'));
     }
 
+    public function schedule_email(Request $request){
+        try{
+            $postData = $request->all();
+            $emailSchedule = new EmailSchedule();
 
+            $email_date=$postData['schedule_date_time'];
+            $schedule_date_time=date('Y-m-d H:i',strtotime($email_date));
+            $schedule_time=date('H:i',strtotime($email_date));
+            $emailSchedule->user_id=getPrimaryUserId(Auth::user()->id);
+            $emailSchedule->schedule_date_time=$schedule_date_time;
+            $emailSchedule->schedule_time=$schedule_time;
+            $emailSchedule->recipient_list=$postData['recipient_list'];
+            $emailSchedule->email_subject=$postData['email_subject'];
+            $emailSchedule->template_body=$postData['template_body'];
+            $emailSchedule->smtp_group_id=$postData['smtp_group_id'] ? $postData['smtp_group_id'] : '';
+            $emailSchedule->smtp_ids=$postData['smtp_ids'] ? $postData['smtp_ids'] : '';
+            $emailSchedule->status='pending';
+            $emailSchedule->batch_number=time();
+
+            $emailSchedule->save();
+            echo json_encode(['success' => true,'message' => 'Email Schedule saved']);
+            die;
+        }catch(Exception $e){
+            echo json_encode(['success' => false,'error' => $e->getMessage()]);
+            die;
+        }
+    }
+    public function email_schedule_list(Request $request){
+        $schedule_list = EmailSchedule::where('user_id', getPrimaryUserId(Auth::user()->id))->orderBy('created_at','DESC')->get();
+        return view('user.email.email_schedule_list',compact('schedule_list'));
+    }
+    public function download_failed_emails(Request $request){
+        $batch_number = $request->route('batch_number');
+        $failed_emails = EmailLog::where(['batch_number'=>$batch_number,'status'=>'fail'])->pluck('recipent_email');
+
+        $csv_data = new Collection();
+        if ($failed_emails->count() === 0) {
+            return $csv_data;
+        }
+
+        foreach ($failed_emails as $recipent_email) {
+            $collection = collect([
+                'recipent_email' => $recipent_email,
+            ]);
+            $csv_data->push($collection);
+        }
+
+        $csv_headers = ['recipent_email'];
+        $csv_column_names = [ 'recipent_email'];
+
+        $data = '"';
+        $data .= implode('","', $csv_headers);
+        $data .= '"';
+        $data .= "\r\n";
+
+        foreach ($csv_data as $row) {
+            $arr_data = [];
+            foreach ($csv_column_names as $column_name) {
+                array_push($arr_data, $row->get($column_name));
+            }
+            $data .= implode('","', $arr_data);
+            $data .= "\r\n";
+        }
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.time().'.csv"',
+        ];
+        return Response::make($data, 200, $headers);;
+    }
 }

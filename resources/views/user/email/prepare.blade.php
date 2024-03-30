@@ -9,6 +9,7 @@
             <div class="container-fluid px-4">
                 <h1 class="mt-4">Prepare Email</h1>
                 <input type="hidden" name="email_subject" class="email_subject" value="{{$email_subject}}">
+                <input type="hidden" name="batch_number" class="batch_number" value="{{$batchNumber}}">
                 <button class="btnSendEmail" type="button">Send Email</button>
                 <div class="container">
                     <div class="row">
@@ -76,18 +77,7 @@
 
             </div>
         </main>
-        <footer class="py-4 bg-light mt-auto">
-            <div class="container-fluid px-4">
-                <div class="d-flex align-items-center justify-content-between small">
-                    <div class="text-muted">Copyright &copy; Your Website 2022</div>
-                    <div>
-                        <a href="#">Privacy Policy</a>
-                        &middot;
-                        <a href="#">Terms &amp; Conditions</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        @include('user.footer')
     </div>
 </div>
 <script src="{{ asset('assets/js/tinymce/tinymce.min.js') }}"></script>

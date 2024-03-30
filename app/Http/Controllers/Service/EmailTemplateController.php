@@ -18,7 +18,7 @@ class EmailTemplateController extends Controller
      */
     public function index()
     {
-        $emailTemplates = EmailTemplate::where('user_id', Auth::User()->id)->get();
+        $emailTemplates = EmailTemplate::where('user_id', getPrimaryUserId(Auth::user()->id))->get();
         return view('user.template.list-all',compact('emailTemplates'));
     }
 
@@ -46,8 +46,8 @@ class EmailTemplateController extends Controller
         ]);
 
         $emailTemplate=new EmailTemplate();
-        $user_id=Auth::user()->id;
-        
+        $user_id=getPrimaryUserId(Auth::user()->id);
+
         $emailTemplate->template_title=$request->get('template_title');
         $emailTemplate->template_body=$request->get('template_body');
         $emailTemplate->user_id=$user_id;
@@ -101,17 +101,17 @@ class EmailTemplateController extends Controller
             'template_body' => 'required'
         ]);
 
-        $user_id=Auth::user()->id;
-       
+        $user_id=getPrimaryUserId(Auth::user()->id);
+
         $arr=[
             'template_title' => $request->input('template_title'),
             'template_body' => $request->input('template_body'),
         ];
-        EmailTemplate::where('id', $id)->where('user_id', Auth::user()->id)->update($arr); 
+        EmailTemplate::where('id', $id)->where('user_id', getPrimaryUserId(Auth::user()->id))->update($arr);
         session()->flash('classes', 'alert-success');
         return redirect()->route('edit-template',['id'=>$id])->with('message', 'Email Template Updated Successfully!');
 
-        
+
     }
 
     /**
@@ -131,7 +131,7 @@ class EmailTemplateController extends Controller
 
     public function upload_image(Request $request)
     {
-        $user_id=Auth::user()->id;
+        $user_id=getPrimaryUserId(Auth::user()->id);
 
         if($request->file()) {
             $fileName = $user_id.'_'.time().'_image_'.$request->file->getClientOriginalName();

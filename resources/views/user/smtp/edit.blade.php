@@ -2,7 +2,7 @@
 
 @section('content')
 <div id="layoutSidenav">
-    
+
     @include('user.sidebar')
     <div id="layoutSidenav_content">
         <main>
@@ -11,8 +11,8 @@
                 <ol class="breadcrumb mb-4">
                     <li class="breadcrumb-item active">Update SMTP</li>
                 </ol>
-                
-                
+
+
                 <div class="card mb-4">
                     <div class="card-body">
                         <div class="container">
@@ -27,12 +27,12 @@
                                       <div class="col-sm-12">
                                         <div class="form-group">
                                           <label for="account_name">Account Name</label>
-                                          <input 
-                                              type="text" 
-                                              class="form-control @error('account_name') is-invalid @enderror" 
-                                              id="account_name" 
-                                              name="account_name" 
-                                              aria-describedby="account_name" 
+                                          <input
+                                              type="text"
+                                              class="form-control @error('account_name') is-invalid @enderror"
+                                              id="account_name"
+                                              name="account_name"
+                                              aria-describedby="account_name"
                                               placeholder="Enter Account Name"
                                               value="{{ $smtp->account_name}}"
                                           >
@@ -42,9 +42,9 @@
                                         </div>
                                         <div class="form-group">
                                           <label for="from_name">From Name</label>
-                                          <input 
-                                                type="text" class="form-control @error('from_name') is-invalid @enderror" 
-                                                id="from_name" name="from_name" 
+                                          <input
+                                                type="text" class="form-control @error('from_name') is-invalid @enderror"
+                                                id="from_name" name="from_name"
                                                 aria-describedby="from_name" placeholder="Enter From Name"
                                                 value="{{ $smtp->from_name }}"
                                           >
@@ -54,9 +54,9 @@
                                         </div>
                                         <div class="form-group">
                                           <label for="from_email">From Email</label>
-                                          <input 
-                                                type="email" class="form-control @error('from_email') is-invalid @enderror" 
-                                                id="from_email" name="from_email" 
+                                          <input
+                                                type="email" class="form-control @error('from_email') is-invalid @enderror"
+                                                id="from_email" name="from_email"
                                                 aria-describedby="from_email" placeholder="Enter From Email"
                                                 value="{{ $smtp->from_email }}"
                                           >
@@ -66,9 +66,9 @@
                                         </div>
                                         <div class="form-group">
                                           <label for="reply_email">Reply Email</label>
-                                          <input 
-                                              type="email" class="form-control @error('reply_email') is-invalid @enderror" 
-                                              id="reply_email" name="reply_email" 
+                                          <input
+                                              type="email" class="form-control @error('reply_email') is-invalid @enderror"
+                                              id="reply_email" name="reply_email"
                                               aria-describedby="reply_email" placeholder="Enter Reply Email"
                                               value="{{ $smtp->reply_email }}"
                                           >
@@ -80,9 +80,9 @@
                                       <div class="col-sm-3">
                                         <div class="form-group">
                                           <label for="server">SMTP Server</label>
-                                          <input 
-                                                type="text" class="form-control @error('server') is-invalid @enderror" 
-                                                id="server" name="server" 
+                                          <input
+                                                type="text" class="form-control @error('server') is-invalid @enderror"
+                                                id="server" name="server"
                                                 aria-describedby="server" placeholder="Enter SMTP Server"
                                                 value="{{ $smtp->server }}"
                                           >
@@ -94,9 +94,9 @@
                                       <div class="col-sm-3">
                                         <div class="form-group">
                                           <label for="port">SMTP Port</label>
-                                          <input 
-                                                type="text" class="form-control @error('port') is-invalid @enderror" 
-                                                id="port" name="port" 
+                                          <input
+                                                type="text" class="form-control @error('port') is-invalid @enderror"
+                                                id="port" name="port"
                                                 aria-describedby="port" placeholder="Enter SMTP Port"
                                                 value="{{ $smtp->port}}"
                                           >
@@ -126,9 +126,9 @@
                                       <div class="col-sm-6">
                                         <div class="form-group">
                                           <label for="user_email">SMTP User Email</label>
-                                          <input 
-                                                type="email" class="form-control @error('user_email') is-invalid @enderror" 
-                                                id="user_email" name="user_email" 
+                                          <input
+                                                type="email" class="form-control @error('user_email') is-invalid @enderror"
+                                                id="user_email" name="user_email"
                                                 aria-describedby="user_email" placeholder="Enter User Email"
                                                 value="{{ $smtp->user_email }}"
                                           >
@@ -140,9 +140,9 @@
                                       <div class="col-sm-6">
                                         <div class="form-group">
                                           <label for="user_password">SMTP User Password</label>
-                                          <input 
-                                                type="password" class="form-control @error('user_password') is-invalid @enderror" 
-                                                id="user_password" name="user_password" 
+                                          <input
+                                                type="password" class="form-control @error('user_password') is-invalid @enderror"
+                                                id="user_password" name="user_password"
                                                 aria-describedby="user_password" placeholder="Enter User Password"
                                                 value="{{ $smtp->user_password }}"
                                           >
@@ -152,7 +152,7 @@
                                         </div>
                                       </div>
                                     </div>
-                                    
+
                                     <button type="button" class="btn btn-primary" id="btnTestSmtp">Test Connection</button>
                                     <button type="submit" class="btn btn-success" id="btnSaveSmtp">Update</button>
                                   </form>
@@ -171,18 +171,7 @@
                 </div>
             </div>
         </main>
-        <footer class="py-4 bg-light mt-auto">
-            <div class="container-fluid px-4">
-                <div class="d-flex align-items-center justify-content-between small">
-                    <div class="text-muted">Copyright &copy; Your Website 2022</div>
-                    <div>
-                        <a href="#">Privacy Policy</a>
-                        &middot;
-                        <a href="#">Terms &amp; Conditions</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        @include('user.footer')
     </div>
 </div>
 @endsection
